@@ -3173,12 +3173,20 @@ spriter.Pose.prototype.strike = function() {
 
   var entity = pose.curEntity();
 
+  var i;
   pose.var_map = pose.var_map || {};
-  entity.var_defs.var_def_array.forEach(function(var_def) {
-    if (!(var_def.name in pose.var_map)) {
-      pose.var_map[var_def.name] = var_def.default_value;
-    }
-  });
+
+  var var_def_array = entity.var_defs.var_def_array;
+  var var_map = pose.var_map;
+  for(var i = var_def_array.length-1;i>=0;--i)
+  {
+    var var_def = var_def_array[i];
+    var name = var_def.name;
+      if(!var_map.hasOwnProperty(name))
+      {
+        var_map[name] = var_def.default_value;
+      }
+  }
 
   var anim = pose.curAnim();
 
@@ -3220,49 +3228,56 @@ spriter.Pose.prototype.strike = function() {
 
     var data_bone_array = mainline_keyframe1.bone_ref_array;
     var pose_bone_array = pose.bone_array;
+    
+    for(i = data_bone_array.length-1;i>=0;--i)
+    {
+        var data_bone = data_bone_array[i];
+        var bone_index = i;
+        var timeline_index = data_bone.timeline_index;
+        var timeline = timeline_array[timeline_index];
+        var timeline_keyframe_array = timeline.keyframe_array;
+        var keyframe_index1 = data_bone.keyframe_index;
+        var keyframe_index2 = (keyframe_index1 + 1) % timeline_keyframe_array.length;
+        var timeline_keyframe1 = timeline_keyframe_array[keyframe_index1];
+        var timeline_keyframe2 = timeline_keyframe_array[keyframe_index2];
+        var time1 = timeline_keyframe1.time;
+        var time2 = timeline_keyframe2.time;
+        if (time2 < time1) {
+          time2 = anim.length;
+        }
+        var tween = 0.0;
+        if (time1 !== time2) {
+          tween = (mainline_time - time1) / (time2 - time1);
+          tween = timeline_keyframe1.curve.evaluate(tween);
+        }
 
-    data_bone_array.forEach(function(data_bone, bone_index) {
-      var timeline_index = data_bone.timeline_index;
-      var timeline = timeline_array[timeline_index];
-      var timeline_keyframe_array = timeline.keyframe_array;
-      var keyframe_index1 = data_bone.keyframe_index;
-      var keyframe_index2 = (keyframe_index1 + 1) % timeline_keyframe_array.length;
-      var timeline_keyframe1 = timeline_keyframe_array[keyframe_index1];
-      var timeline_keyframe2 = timeline_keyframe_array[keyframe_index2];
-      var time1 = timeline_keyframe1.time;
-      var time2 = timeline_keyframe2.time;
-      if (time2 < time1) {
-        time2 = anim.length;
-      }
-      var tween = 0.0;
-      if (time1 !== time2) {
-        tween = (mainline_time - time1) / (time2 - time1);
-        tween = timeline_keyframe1.curve.evaluate(tween);
-      }
-
-      var pose_bone = pose_bone_array[bone_index] = (pose_bone_array[bone_index] || new spriter.Bone());
-      pose_bone.copy(timeline_keyframe1.bone).tween(timeline_keyframe2.bone, tween, timeline_keyframe1.spin);
-      pose_bone.name = timeline.name; // set name from timeline
-      pose_bone.parent_index = data_bone.parent_index; // set parent from bone_ref
-    });
+        var pose_bone = pose_bone_array[bone_index] = (pose_bone_array[bone_index] || new spriter.Bone());
+        pose_bone.copy(timeline_keyframe1.bone).tween(timeline_keyframe2.bone, tween, timeline_keyframe1.spin);
+        pose_bone.name = timeline.name; // set name from timeline
+        pose_bone.parent_index = data_bone.parent_index; // set parent from bone_ref
+    }
 
     // clamp output bone array
     pose_bone_array.length = data_bone_array.length;
-
-    // compute bone world space
-    pose_bone_array.forEach(function(bone) {
-      var parent_bone = pose_bone_array[bone.parent_index];
-      if (parent_bone) {
-        spriter.Space.combine(parent_bone.world_space, bone.local_space, bone.world_space);
-      } else {
-        bone.world_space.copy(bone.local_space);
-      }
-    });
+    
+    for(var i = 0;i< pose_bone_array.length;++i)
+    {
+      var _bone = pose_bone_array[i];
+      var parent_bone = pose_bone_array[_bone.parent_index];
+        if (parent_bone) {
+          spriter.Space.combine(parent_bone.world_space, _bone.local_space, _bone.world_space);
+        } else {
+          _bone.world_space.copy(_bone.local_space);
+        }
+    }
 
     var data_object_array = mainline_keyframe1.object_ref_array;
     var pose_object_array = pose.object_array;
-
-    data_object_array.forEach(function(data_object, object_index) {
+    
+    for(var i = data_object_array.length-1;i>=0;--i)
+    {
+      var data_object = data_object_array[i];
+      var object_index = i;
       var timeline_index = data_object.timeline_index;
       var timeline = timeline_array[timeline_index];
       var timeline_keyframe_array = timeline.keyframe_array;
@@ -3325,7 +3340,7 @@ spriter.Pose.prototype.strike = function() {
         default:
           throw new Error(timeline.type);
       }
-    });
+    }
 
     // clamp output object array
     pose_object_array.length = data_object_array.length;
@@ -3358,9 +3373,10 @@ spriter.Pose.prototype.strike = function() {
         });
       }
     });
-
-    // compute object world space
-    pose_object_array.forEach(function(object) {
+    
+    for(i=0;i<pose_object_array.length;++i)
+    {
+      var object = pose_object_array[i];
       switch (object.type) {
         case 'sprite':
           var bone = pose_bone_array[object.parent_index];
@@ -3422,11 +3438,12 @@ spriter.Pose.prototype.strike = function() {
         default:
           throw new Error(object.type);
       }
-    });
-
-    // process sub-entities
-    pose_object_array.forEach(function(object) {
-      switch (object.type) {
+    }
+  
+    for(i=0;i<pose_object_array.length;++i)
+    {
+       object = pose_object_array[i];
+       switch (object.type) {
         case 'entity':
           var sub_pose = object.pose = object.pose || new spriter.Pose(pose.data);
           var sub_entity_key = sub_pose.data.entity_keys[object.entity_index];
@@ -3449,10 +3466,11 @@ spriter.Pose.prototype.strike = function() {
           sub_pose.strike();
           break;
       }
-    });
+    }
+
 
     // process soundlines
-    pose.sound_array = [];
+    /*pose.sound_array = [];
     anim.soundline_array.forEach(function(soundline) {
       function add_sound(sound_keyframe) {
         var folder = pose.data.folder_array[sound_keyframe.sound.folder_index];
@@ -3514,11 +3532,15 @@ spriter.Pose.prototype.strike = function() {
           });
         }
       }
-    });
+    });*/
 
     // process eventlines
     pose.event_array = [];
-    anim.eventline_array.forEach(function(eventline) {
+
+    var eventline_array = anim.eventline_array;
+    for(i=0;i<eventline_array.length;++i)
+    {
+      var eventline = eventline_array[i];
       function add_event(event_keyframe) {
         //console.log(prev_time, keyframe.time, time, "event", eventline.name);
         pose.event_array.push(eventline.name);
@@ -3573,7 +3595,7 @@ spriter.Pose.prototype.strike = function() {
           });
         }
       }
-    });
+    }
 
     if (anim.meta) {
       // process tagline
