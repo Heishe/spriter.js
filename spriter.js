@@ -170,16 +170,17 @@ spriter.makeArray = function(value) {
  * @param {number} max
  */
 spriter.wrap = function(num, min, max) {
-  if (min < max) {
-    if (num < min) {
-      return max - ((min - num) % (max - min));
-    } else {
-      return min + ((num - min) % (max - min));
-    }
-  } else if (min === max) {
-    return min;
+  if(min === max)
+  {
+     return num;
+  }
+  
+  var anim_length = max-min;
+  if (num < min) 
+  {
+    return max - ((min - num) % anim_length);
   } else {
-    return num;
+    return min + ((num - min) % anim_length);
   }
 }
 
@@ -3124,6 +3125,19 @@ spriter.Pose.prototype.setAnim = function(anim_key) {
     }
     this.elapsed_time = 0;
     this.dirty = true;
+
+    //update var_defs
+    var var_def_array = this.data.entity_map[this.entity_key].var_defs.var_def_array;
+    var var_map = this.var_map;
+    for(var i = var_def_array.length-1;i>=0;--i)
+    {
+      var var_def = var_def_array[i];
+      var name = var_def.name;
+        if(!var_map.hasOwnProperty(name))
+        {
+          var_map[name] = var_def.default_value;
+        }
+    }
   }
 }
 
@@ -3165,30 +3179,14 @@ spriter.Pose.prototype.update = function(elapsed_time) {
  * @return {void}
  */
 spriter.Pose.prototype.strike = function() {
-  var pose = this;
+  var pose = this, i;
   if (!pose.dirty) {
     return;
   }
   pose.dirty = false;
 
-  var entity = pose.curEntity();
-
-  var i;
-  pose.var_map = pose.var_map || {};
-
-  var var_def_array = entity.var_defs.var_def_array;
-  var var_map = pose.var_map;
-  for(var i = var_def_array.length-1;i>=0;--i)
-  {
-    var var_def = var_def_array[i];
-    var name = var_def.name;
-      if(!var_map.hasOwnProperty(name))
-      {
-        var_map[name] = var_def.default_value;
-      }
-  }
-
-  var anim = pose.curAnim();
+  var entity = pose.data.entity_map[pose.entity_key];
+  var anim = entity.animation_map[pose.anim_key];
 
   var prev_time = pose.time;
   var elapsed_time = pose.elapsed_time;
@@ -3201,7 +3199,19 @@ spriter.Pose.prototype.strike = function() {
   if (anim) {
     wrapped_min = (elapsed_time < 0) && (pose.time <= anim.min_time);
     wrapped_max = (elapsed_time > 0) && (pose.time >= anim.max_time);
-    pose.time = spriter.wrap(pose.time, anim.min_time, anim.max_time);
+
+    var min = anim.min_time;
+    var max = anim.max_time;
+    var anim_length = max-min;
+    var num = pose.time;
+    if (num < min) 
+    {
+      pose.time = max - ((min - num) % anim_length);
+    } 
+    else 
+    {
+      pose.time = min + ((num - min) % anim_length);
+    }
   }
 
   var time = pose.time;
@@ -3260,7 +3270,7 @@ spriter.Pose.prototype.strike = function() {
     // clamp output bone array
     pose_bone_array.length = data_bone_array.length;
     
-    for(var i = 0;i< pose_bone_array.length;++i)
+    for(i = 0;i< pose_bone_array.length;++i)
     {
       var _bone = pose_bone_array[i];
       var parent_bone = pose_bone_array[_bone.parent_index];
@@ -3274,7 +3284,7 @@ spriter.Pose.prototype.strike = function() {
     var data_object_array = mainline_keyframe1.object_ref_array;
     var pose_object_array = pose.object_array;
     
-    for(var i = data_object_array.length-1;i>=0;--i)
+    for(i = data_object_array.length-1;i>=0;--i)
     {
       var data_object = data_object_array[i];
       var object_index = i;
@@ -3662,7 +3672,6 @@ spriter.Pose.prototype.strike = function() {
       }
 
       // process varlines
-      pose.var_map = pose.var_map || {};
       anim.meta.varline_array.forEach(function(varline) {
         var keyframe_array = varline.keyframe_array;
         var keyframe_index1 = spriter.Keyframe.find(keyframe_array, time);
