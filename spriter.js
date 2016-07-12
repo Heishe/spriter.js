@@ -3204,14 +3204,18 @@ spriter.Pose.prototype.strike = function() {
     var max = anim.max_time;
     var anim_length = max-min;
     var num = pose.time;
-    if (num < min) 
+    if(num !== max)
     {
-      pose.time = max - ((min - num) % anim_length);
-    } 
-    else 
-    {
-      pose.time = min + ((num - min) % anim_length);
+      if (num < min) 
+      {
+        pose.time = max - ((min - num) % anim_length);
+      } 
+      else 
+      {
+        pose.time = min + ((num - min) % anim_length);
+      }
     }
+    
   }
 
   var time = pose.time;
