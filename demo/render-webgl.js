@@ -240,7 +240,7 @@ RenderWebGL.prototype.drawPose = function(spriter_pose, atlas_data) {
           gl.uniformMatrix3fv(gl_shader.uniforms['uModelview'], false, gl_modelview);
           gl.uniformMatrix3fv(gl_shader.uniforms['uTexMatrix'], false, gl_tex_matrix);
           gl.uniform4fv(gl_shader.uniforms['uColor'], gl_color);
-          gl.activeTexture(gl.TEXTURE0);
+          cc.glActiveTexture(gl.TEXTURE0);
           gl.bindTexture(gl.TEXTURE_2D, gl_texture);
           gl.uniform1i(gl_shader.uniforms['uSampler'], 0);
           glSetupAttribute(gl, gl_shader, 'aVertexPosition', gl_vertex.position);
