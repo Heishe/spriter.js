@@ -3491,6 +3491,7 @@ spriter.Pose.prototype.strike = function() {
         var file = folder && folder.file_array[sound_keyframe.sound.file_index];
         //console.log(prev_time, sound_keyframe.time, time, "sound", file.name);
         pose.sound_array.push({
+          eventName: soundline.name,
           name: file.name,
           volume: sound_keyframe.sound.volume,
           panning: sound_keyframe.sound.panning
